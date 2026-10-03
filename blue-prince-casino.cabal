@@ -1,0 +1,41 @@
+cabal-version: 3.0
+name: blue-prince-casino
+version: 0.1.0.0
+synopsis: Blue Prince slot machines with a Brick terminal interface
+description: A functional slot machine simulator with manual and optimal automatic play.
+category: Game
+license: BSD-3-Clause
+license-file: LICENSE
+build-type: Simple
+extra-source-files: README.md
+
+common defaults
+  default-language: GHC2024
+  ghc-options: -Wall -Wcompat
+  build-depends: base >=4.20 && <5, random >=1.2 && <1.4
+
+library
+  import: defaults
+  hs-source-dirs: src
+  exposed-modules: Casino.Game, Casino.Strategy
+  build-depends: containers >=0.6 && <0.9
+
+executable blue-prince-casino
+  import: defaults
+  hs-source-dirs: app
+  main-is: Main.hs
+  other-modules: Icons
+  ghc-options: -threaded -rtsopts
+  build-depends:
+    blue-prince-casino,
+    brick >=2.4 && <3,
+    vty >=6 && <7,
+    vty-crossplatform >=0.4 && <0.6,
+    mtl >=2.3 && <2.4
+
+test-suite casino-checks
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends: blue-prince-casino, containers >=0.6 && <0.9
