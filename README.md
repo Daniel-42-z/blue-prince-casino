@@ -5,6 +5,8 @@ A Haskell / Brick terminal recreation of the Casino slot machines in
 Includes manual play, autoplay using the wiki's ordered strategy, and a setup
 screen for choosing starting money and the regular machine (three bonus spins)
 or golden machine (five). Both settings are locked after starting play.
+Setup also offers a calculator for finding the optimal action for a hypothetical
+four-reel state and remaining reroll count.
 
 ## Run
 
@@ -29,7 +31,10 @@ cabal run blue-prince-casino -- --money 100 --auto --delay 100 --seed 42
 `--seed` accepts a machine-sized integer. `--help` lists these options.
 Money and machine options prefill the setup screen. Edit money with digit keys,
 Backspace, and Ctrl-U; select fields with Tab or Up/Down. Choose the machine
-with `g`, or Left/Right/Space when its field is selected. Press Enter to start.
+with `g`, or Left/Right/Space when its field is selected. Press `c` to switch
+between Game and Calculator, or change the selected Mode field with
+Left/Right/Space. Press Enter to open the selected mode. Starting money applies
+only to Game mode.
 Autoplay stays paused during setup, including when `--auto` is supplied.
 Run in an interactive terminal; a window of at least 76 columns by 30 rows is
 recommended. Select a **Nerd Font v3 or newer** in your terminal settings
@@ -60,6 +65,29 @@ Quit and launch the app again to choose different settings.
 The strategy hint is shown initially. Its visibility toggle preserves your game
 and autoplay state, and the preference remains in effect when you restart.
 
+## Calculator
+
+Select Calculator in setup and choose the regular or golden machine. The
+calculator uses the same pure optimal-strategy calculation as autoplay and
+updates its action and explanation after every edit. It shows the current
+payout and assumes all remaining bonus spins are affordable.
+
+| Key | Action |
+| --- | --- |
+| 1–4 | Select a reel when editing reels |
+| 5 | Select remaining rerolls when editing reels |
+| Tab / Shift-Tab / Left / Right | Move between the four reels and reroll count |
+| Up / Down / Space | Cycle the selected symbol or adjust the selected count |
+| d / c / s / l / x / n / t / k | Set Dash / Coin / Stack / Clover / Double / Snake / Net / Crown |
+| 0–5 in the rerolls field | Set remaining rerolls, limited to 3 or 5 for the selected machine |
+| + / - | Increase / decrease remaining rerolls |
+| r | Reset to four dashes and the machine's full reroll allowance |
+| Esc | Return to setup with your previous settings |
+| q / Ctrl-C | Quit |
+
+The calculator does not spend coins or make random draws. To switch machines,
+return to setup with Esc, choose the machine, and open Calculator again.
+
 ## Rules and strategy
 
 Four reels are sampled independently, including on rerolls. The probabilities
@@ -88,7 +116,8 @@ direct access).
 
 `Casino.Game` contains the symbols, payout calculation, immutable game state,
 weighted random draws, and pure action reducer. `Casino.Strategy` contains the
-ordered wiki rules as pure recommendations. `app/Main.hs` draws the interface
+ordered wiki rules as pure recommendations. `Casino.Calculator` contains the
+pure calculator editing model. `app/Main.hs` draws the interface
 and translates input and timer events into state transformations. IO is limited
 to startup, argument handling, obtaining the initial RNG, and the Brick timer /
 terminal lifecycle. The timer thread is cleaned up when the TUI exits.
@@ -123,4 +152,5 @@ cabal test
 
 The checks cover payout modifiers, strategy exceptions, state accounting,
 recommendation legality over every reel combination, and exact expected profit
-of the wiki policy for both machines (using dynamic programming).
+of the wiki policy for both machines (using dynamic programming), plus calculator
+editing, symbol cycling, reroll bounds, reset, and recommendations.

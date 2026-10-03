@@ -1,10 +1,22 @@
 module Casino.Game
-  ( Symbol (..), symbols, symbolName, symbolWeight
-  , Reels (..), reelSymbols, replaceReel, payout
-  , Machine (..), bonusLimit, toggleMachine
-  , Round (..), Game (..), Action (..)
-  , newGame, applyAction
-  ) where
+  ( Symbol (..),
+    symbols,
+    symbolName,
+    symbolWeight,
+    Reels (..),
+    reelSymbols,
+    replaceReel,
+    payout,
+    Machine (..),
+    bonusLimit,
+    toggleMachine,
+    Round (..),
+    Game (..),
+    Action (..),
+    newGame,
+    applyAction,
+  )
+where
 
 import System.Random (StdGen, randomR)
 
@@ -72,34 +84,42 @@ toggleMachine Regular = Golden
 toggleMachine Golden = Regular
 
 data Round = Round
-  { roundReels :: Reels
-  , bonusRemaining :: Int
-  , roundCost :: Integer
-  } deriving (Eq, Show)
+  { roundReels :: Reels,
+    bonusRemaining :: Int,
+    roundCost :: Integer
+  }
+  deriving (Eq, Show)
 
 data Game = Game
-  { bankroll :: Integer
-  , startingMoney :: Integer
-  , selectedMachine :: Machine
-  , activeRound :: Maybe Round
-  , completedRounds :: Integer
-  , totalSpent :: Integer
-  , totalWon :: Integer
-  , lastPayout :: Maybe Integer
-  , statusMessage :: String
-  , randomGenerator :: StdGen
-  } deriving (Show)
+  { bankroll :: Integer,
+    startingMoney :: Integer,
+    selectedMachine :: Machine,
+    activeRound :: Maybe Round,
+    completedRounds :: Integer,
+    totalSpent :: Integer,
+    totalWon :: Integer,
+    lastPayout :: Maybe Integer,
+    statusMessage :: String,
+    randomGenerator :: StdGen
+  }
+  deriving (Show)
 
 data Action = Spin | Reroll Int | Collect deriving (Eq, Show)
 
 newGame :: Integer -> Machine -> StdGen -> Game
-newGame money machine generator = Game
-  { bankroll = max 0 money, startingMoney = max 0 money
-  , selectedMachine = machine, activeRound = Nothing
-  , completedRounds = 0, totalSpent = 0, totalWon = 0
-  , lastPayout = Nothing, statusMessage = "Ready. Spin costs 1 coin."
-  , randomGenerator = generator
-  }
+newGame money machine generator =
+  Game
+    { bankroll = max 0 money,
+      startingMoney = max 0 money,
+      selectedMachine = machine,
+      activeRound = Nothing,
+      completedRounds = 0,
+      totalSpent = 0,
+      totalWon = 0,
+      lastPayout = Nothing,
+      statusMessage = "Ready. Spin costs 1 coin.",
+      randomGenerator = generator
+    }
 
 drawSymbol :: StdGen -> (StdGen, Symbol)
 drawSymbol generator = (nextGenerator, choose ticket symbols)
@@ -121,44 +141,50 @@ drawReels generator = (fourthGenerator, Reels first second third fourth)
 -- All state changes, including RNG advancement, are pure and reproducible.
 applyAction :: Action -> Game -> Game
 applyAction Spin game
-  | Just _ <- activeRound game = game { statusMessage = "Collect this round before spinning again." }
-  | bankroll game < 1 = game { statusMessage = "No coins left. Press r to restart with the same settings." }
-  | otherwise = game
-      { bankroll = bankroll game - 1
-      , totalSpent = totalSpent game + 1
-      , activeRound = Just (Round reels (bonusLimit $ selectedMachine game) 1)
-      , randomGenerator = nextGenerator
-      , statusMessage = "Choose a reel to reroll, or collect the payout."
-      }
+  | Just _ <- activeRound game = game {statusMessage = "Collect this round before spinning again."}
+  | bankroll game < 1 = game {statusMessage = "No coins left. Press r to restart with the same settings."}
+  | otherwise =
+      game
+        { bankroll = bankroll game - 1,
+          totalSpent = totalSpent game + 1,
+          activeRound = Just (Round reels (bonusLimit $ selectedMachine game) 1),
+          randomGenerator = nextGenerator,
+          statusMessage = "Choose a reel to reroll, or collect the payout."
+        }
   where
     (nextGenerator, reels) = drawReels (randomGenerator game)
 applyAction (Reroll reelIndex) game = case activeRound game of
-  Nothing -> game { statusMessage = "Spin first." }
+  Nothing -> game {statusMessage = "Spin first."}
   Just currentRound
     | reelIndex < 0 || reelIndex > 3 -> game
-    | bonusRemaining currentRound == 0 -> game { statusMessage = "No bonus spins remaining. Collect your payout." }
-    | bankroll game < 1 -> game { statusMessage = "A bonus spin costs 1 coin. Collect your payout." }
-    | otherwise -> game
-        { bankroll = bankroll game - 1
-        , totalSpent = totalSpent game + 1
-        , activeRound = Just currentRound
-            { roundReels = replaceReel reelIndex symbol (roundReels currentRound)
-            , bonusRemaining = bonusRemaining currentRound - 1
-            , roundCost = roundCost currentRound + 1
-            }
-        , randomGenerator = nextGenerator
-        , statusMessage = "Bonus spin used."
-        }
+    | bonusRemaining currentRound == 0 -> game {statusMessage = "No bonus spins remaining. Collect your payout."}
+    | bankroll game < 1 -> game {statusMessage = "A bonus spin costs 1 coin. Collect your payout."}
+    | otherwise ->
+        game
+          { bankroll = bankroll game - 1,
+            totalSpent = totalSpent game + 1,
+            activeRound =
+              Just
+                currentRound
+                  { roundReels = replaceReel reelIndex symbol (roundReels currentRound),
+                    bonusRemaining = bonusRemaining currentRound - 1,
+                    roundCost = roundCost currentRound + 1
+                  },
+            randomGenerator = nextGenerator,
+            statusMessage = "Bonus spin used."
+          }
   where
     (nextGenerator, symbol) = drawSymbol (randomGenerator game)
 applyAction Collect game = case activeRound game of
-  Nothing -> game { statusMessage = "Spin first." }
-  Just currentRound -> game
-    { bankroll = bankroll game + reward
-    , totalWon = totalWon game + reward
-    , completedRounds = completedRounds game + 1
-    , activeRound = Nothing
-    , lastPayout = Just reward
-    , statusMessage = "Collected " ++ show reward ++ " coins (round net " ++ show (reward - roundCost currentRound) ++ ")."
-    }
-    where reward = payout (roundReels currentRound)
+  Nothing -> game {statusMessage = "Spin first."}
+  Just currentRound ->
+    game
+      { bankroll = bankroll game + reward,
+        totalWon = totalWon game + reward,
+        completedRounds = completedRounds game + 1,
+        activeRound = Nothing,
+        lastPayout = Just reward,
+        statusMessage = "Collected " ++ show reward ++ " coins (round net " ++ show (reward - roundCost currentRound) ++ ")."
+      }
+    where
+      reward = payout (roundReels currentRound)

@@ -17,7 +17,7 @@ common defaults
 library
   import: defaults
   hs-source-dirs: src
-  exposed-modules: Casino.Game, Casino.Strategy
+  exposed-modules: Casino.Game, Casino.Strategy, Casino.Calculator
   build-depends: containers >=0.6 && <0.9
 
 executable blue-prince-casino
